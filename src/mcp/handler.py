@@ -3,6 +3,10 @@
 from typing import Any, Dict, Optional, Union
 
 from .protocol import MCPProtocol
+from ..utils import LoggingConfig
+
+# Get logger for this module
+logger = LoggingConfig.get_logger("src.mcp.handler")
 
 
 class MCPHandler:
@@ -11,6 +15,7 @@ class MCPHandler:
     def __init__(self):
         """Initialize MCP Handler."""
         self.protocol = MCPProtocol()
+        logger.info("MCP Handler initialized")
 
     async def handle_request(self, request: Dict[str, Any]) -> Dict[str, Any]:
         """Handle MCP request.
@@ -21,8 +26,11 @@ class MCPHandler:
         Returns:
             Dict[str, Any]: The response
         """
+        logger.debug("Handling request", request=request)
+
         # Handle non-dict requests
         if not isinstance(request, dict):
+            logger.error("Request is not a dictionary")
             return {
                 "jsonrpc": "2.0",
                 "id": None,
@@ -35,6 +43,7 @@ class MCPHandler:
 
         # Validate request format
         if not self.protocol.validate_request(request):
+            logger.error("Request validation failed")
             # For invalid requests, we need to determine if we can extract an ID
             request_id = request.get("id")
             if request_id is None or not isinstance(request_id, (str, int)):
@@ -53,12 +62,20 @@ class MCPHandler:
         params = request.get("params", {})
         request_id = request.get("id")
 
+        logger.debug("Processing request", method=method, params=params, request_id=request_id)
+
         try:
-            if method == "ListOfferings":
+            if method == "initialize":
+                logger.info("Handling initialize request")
+                response = await self._handle_initialize(request_id, params)
+                self.protocol.mark_initialized()
+                logger.info("Server initialized successfully")
+                return response
+            elif method == "ListOfferings":
+                logger.info("Handling ListOfferings request")
                 return await self._handle_list_offerings(request_id, params)
-            elif method == "initialize":
-                return await self._handle_initialize(request_id, params)
             else:
+                logger.warning("Unknown method requested", method=method)
                 return self.protocol.create_response(
                     request_id,
                     error={
@@ -68,6 +85,7 @@ class MCPHandler:
                     },
                 )
         except Exception as e:
+            logger.error("Error handling request", exc_info=True)
             return self.protocol.create_response(
                 request_id, error={"code": -32603, "message": "Internal error", "data": str(e)}
             )
@@ -84,6 +102,7 @@ class MCPHandler:
         Returns:
             Dict[str, Any]: The response
         """
+        logger.debug("Initializing with params", params=params)
         return self.protocol.create_response(
             request_id,
             result={
@@ -105,6 +124,7 @@ class MCPHandler:
         Returns:
             Dict[str, Any]: The response
         """
+        logger.debug("Listing offerings with params", params=params)
         return self.protocol.create_response(
             request_id,
             result={

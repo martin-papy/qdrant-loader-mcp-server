@@ -5,9 +5,11 @@ import sys
 import signal
 import asyncio
 import json
-import logging
+import logging  # Keep this for asyncio logger
 from typing import Dict, Any, NoReturn
 from contextlib import asynccontextmanager
+from datetime import datetime
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -41,7 +43,7 @@ async def lifespan(app: FastAPI):
     try:
         await search_engine.initialize(config.qdrant)
     except RuntimeError as e:
-        logger.error("Failed to initialize search engine", error=str(e))
+        logger.error("Failed to initialize search engine", exc_info=True)
         logger.error(
             "Server cannot start without Qdrant connection. "
             "Please ensure Qdrant is running and try again."
@@ -92,7 +94,7 @@ async def shutdown(loop: asyncio.AbstractEventLoop):
     try:
         await asyncio.gather(*tasks, return_exceptions=True)
     except Exception as e:
-        logger.error(f"Error during shutdown: {e}")
+        logger.error("Error during shutdown", exc_info=True)
 
     # Stop the event loop
     loop.stop()
@@ -117,7 +119,7 @@ def main():
         logger.debug("Running stdio handler...")
         loop.run_until_complete(handle_stdio())
     except Exception as e:
-        logger.error(f"Error in main: {e}")
+        logger.error("Error in main", exc_info=True)
         raise
     finally:
         logger.debug("Cleaning up...")
@@ -130,7 +132,7 @@ def main():
             # Run the loop until all tasks are done
             loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
         except Exception as e:
-            logger.error(f"Error during final cleanup: {e}")
+            logger.error("Error during final cleanup", exc_info=True)
         finally:
             loop.close()
 
@@ -149,9 +151,15 @@ async def handle_stdio():
                 logger.info("No input received, breaking")
                 break
 
+            # Log the raw input
+            raw_input = line.decode().strip()
+            logger.debug("Received raw input", raw_input=raw_input)
+
             # Parse the request
             try:
-                request = json.loads(line.decode())
+                request = json.loads(raw_input)
+                # Log the parsed request
+                logger.debug("Parsed request", request=request)
             except json.JSONDecodeError:
                 logger.error("Invalid JSON received")
                 # Send error response for invalid JSON
@@ -217,6 +225,9 @@ async def handle_stdio():
             # Handle the request
             response = await mcp_handler.handle_request(request)
 
+            # Log the response
+            logger.debug("Sending response", response=response)
+
             # Write the response to stdout
             sys.stdout.write(json.dumps(response) + "\n")
             sys.stdout.flush()
@@ -224,7 +235,7 @@ async def handle_stdio():
             logger.info("Received shutdown signal")
             break
         except Exception as e:
-            logger.error(f"Error handling request: {e}")
+            logger.error("Error handling request", exc_info=True)
             continue
 
 

@@ -3,6 +3,8 @@
 import logging
 import sys
 import structlog
+from pathlib import Path
+import re
 
 
 class QdrantVersionFilter(logging.Filter):
@@ -25,6 +27,17 @@ class ApplicationFilter(logging.Filter):
             or record.name == "__main__"  # Allow logs from main module
             or record.name == "asyncio"  # Allow logs from asyncio
         )
+
+
+class CleanFormatter(logging.Formatter):
+    """Formatter that removes ANSI color codes."""
+
+    def format(self, record):
+        # Get the formatted message
+        message = super().format(record)
+        # Remove ANSI color codes
+        ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+        return ansi_escape.sub("", message)
 
 
 class LoggingConfig:
@@ -71,8 +84,15 @@ class LoggingConfig:
         # Add file handler if file is configured
         if file:
             file_handler = logging.FileHandler(file)
-            file_handler.setFormatter(logging.Formatter("%(message)s"))
+            file_handler.setFormatter(CleanFormatter("%(message)s"))
             handlers.append(file_handler)
+
+        # Add clean log file handler at project root
+        clean_log_file = Path("mcp-qdrant-loader.log")
+        clean_log_handler = logging.FileHandler(clean_log_file)
+        clean_log_handler.setFormatter(CleanFormatter("%(message)s"))
+        clean_log_handler.addFilter(ApplicationFilter())
+        handlers.append(clean_log_handler)
 
         # Configure standard logging
         logging.basicConfig(

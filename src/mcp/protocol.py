@@ -9,6 +9,7 @@ class MCPProtocol:
     def __init__(self):
         """Initialize MCP Protocol."""
         self.version = "2.0"
+        self.initialized = False
 
     def validate_request(self, request: Dict[str, Any]) -> bool:
         """Validate MCP request format according to JSON-RPC 2.0 specification.
@@ -23,6 +24,17 @@ class MCPProtocol:
         if not isinstance(request, dict):
             return False
 
+        # Handle empty dict
+        if not request:
+            # Allow empty dict only during initialization
+            return not self.initialized
+
+        # For initialization request, be more lenient
+        if not self.initialized:
+            if request.get("method") == "initialize":
+                return True
+
+        # Standard validation for other requests
         if "jsonrpc" not in request or request["jsonrpc"] != "2.0":
             return False
 
@@ -142,3 +154,7 @@ class MCPProtocol:
             }
 
         return response
+
+    def mark_initialized(self):
+        """Mark the protocol as initialized."""
+        self.initialized = True
