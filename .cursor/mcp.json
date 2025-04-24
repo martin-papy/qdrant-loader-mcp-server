@@ -1,0 +1,7 @@
+{
+    "mcpServers": {
+        "qdrant-loader-mcp-server": {
+            "command": "/Users/martin.papy/Development/qdrant-loader-mcp-server/venv/bin/mcp-qdrant-loader"
+        }
+    }
+}

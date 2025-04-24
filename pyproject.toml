@@ -48,7 +48,7 @@ Repository = "https://github.com/martin-papy/qdrant-loader-mcp-server"
 Issues = "https://github.com/martin-papy/qdrant-loader-mcp-server/issues"
 
 [project.scripts]
-mcp-server = "src.main:main"
+mcp-qdrant-loader = "src.main:main"
 
 [project.optional-dependencies]
 dev = [
@@ -90,6 +90,9 @@ source = [
 omit = [
     "tests/*",
 ]
+concurrency = ["multiprocessing", "thread"]
+parallel = true
+branch = true
 
 [tool.coverage.report]
 exclude_lines = [
@@ -108,7 +111,7 @@ target-version = [
     "py312",
 ]
 include = "\\.pyi?$"
-extend-exclude = "# A regex preceded with ^/ will apply only to files and directories\n# in the root of the project.\n^/docs/\n"
+extend-exclude = "# A regex preceded with ^/ will apply only to files and directories\n# in the root of the project.\n^/docs/\n^/.coveragerc"
 
 [tool.isort]
 profile = "black"
@@ -147,6 +150,9 @@ select = [
 ]
 ignore = [
     "E501",
+]
+exclude = [
+    ".coveragerc",
 ]
 
 [tool.ruff.isort]

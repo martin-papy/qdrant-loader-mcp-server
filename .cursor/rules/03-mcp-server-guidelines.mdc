@@ -1,7 +1,7 @@
 ---
-description:
-globs:
-alwaysApply: false
+description: 
+globs: 
+alwaysApply: true
 ---
 # MCP Server Development Guidelines
 
@@ -76,5 +76,5 @@ alwaysApply: false
 - Document rate limits
 
 For detailed implementation guidance, refer to:
-- [TechnicalSpecification.md](mdc:docs/TechnicalSpecification.md)
-- [MCPConfiguration.md](mdc:docs/MCPConfiguration.md)
+- [TechnicalSpecification.md](mdc:qdrant-loader-mcp-server/docs/TechnicalSpecification.md)
+- [MCPConfiguration.md](mdc:qdrant-loader-mcp-server/docs/MCPConfiguration.md)

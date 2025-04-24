@@ -1,7 +1,7 @@
 ---
-description:
-globs:
-alwaysApply: false
+description: 
+globs: 
+alwaysApply: true
 ---
 # Coding Standards
 
@@ -88,4 +88,4 @@ async def search_documents(
 - Aim for high test coverage
 - Include integration tests for API endpoints
 
-For detailed standards, refer to [CodingStandards.md](mdc:docs/CodingStandards.md)
+For detailed standards, refer to [CodingStandards.md](mdc:qdrant-loader-mcp-server/docs/CodingStandards.md)

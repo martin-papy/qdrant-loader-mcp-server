@@ -1,6 +1,6 @@
 """MCP Protocol implementation."""
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 
 
 class MCPProtocol:
@@ -11,7 +11,7 @@ class MCPProtocol:
         self.version = "2.0"
 
     def validate_request(self, request: Dict[str, Any]) -> bool:
-        """Validate MCP request format.
+        """Validate MCP request format according to JSON-RPC 2.0 specification.
 
         Args:
             request: The request to validate
@@ -19,27 +19,126 @@ class MCPProtocol:
         Returns:
             bool: True if request is valid, False otherwise
         """
-        required_fields = ["jsonrpc", "method", "params", "id"]
-        return all(field in request for field in required_fields)
+        # Check for required fields
+        if not isinstance(request, dict):
+            return False
 
-    def create_response(
-        self, request_id: int, result: Optional[Any] = None, error: Optional[Dict] = None
-    ) -> Dict[str, Any]:
-        """Create MCP response.
+        if "jsonrpc" not in request or request["jsonrpc"] != "2.0":
+            return False
+
+        if "method" not in request or not isinstance(request["method"], str):
+            return False
+
+        # For requests (not notifications), id is required
+        if "id" in request:
+            if not isinstance(request["id"], (str, int)):
+                return False
+            if request["id"] is None:
+                return False
+        else:
+            # This is a notification, which is valid
+            return True
+
+        # Params is optional but must be object or array if present
+        if "params" in request and not isinstance(request["params"], (dict, list)):
+            return False
+
+        return True
+
+    def validate_response(self, response: Dict[str, Any]) -> bool:
+        """Validate MCP response format according to JSON-RPC 2.0 specification.
 
         Args:
-            request_id: The ID of the request
+            response: The response to validate
+
+        Returns:
+            bool: True if response is valid, False otherwise
+        """
+        if not isinstance(response, dict):
+            return False
+
+        # Empty response is valid for notifications
+        if not response:
+            return True
+
+        # Check required fields
+        if "jsonrpc" not in response or response["jsonrpc"] != "2.0":
+            return False
+
+        if "id" not in response:
+            return False
+
+        if not isinstance(response["id"], (str, int)):
+            return False
+
+        # Must have either result or error, but not both
+        has_result = "result" in response
+        has_error = "error" in response
+
+        if not has_result and not has_error:
+            return False
+
+        if has_result and has_error:
+            return False
+
+        # Validate error object structure if present
+        if has_error:
+            error = response["error"]
+            if not isinstance(error, dict):
+                return False
+            if "code" not in error or not isinstance(error["code"], int):
+                return False
+            if "message" not in error or not isinstance(error["message"], str):
+                return False
+
+        return True
+
+    def create_response(
+        self,
+        request_id: Optional[Union[str, int]],
+        result: Optional[Any] = None,
+        error: Optional[Dict] = None,
+    ) -> Dict[str, Any]:
+        """Create MCP response according to JSON-RPC 2.0 specification.
+
+        Args:
+            request_id: The ID of the request (None for notifications)
             result: The result of the request
             error: Any error that occurred
 
         Returns:
             Dict[str, Any]: The response object
         """
+        # For notifications, return empty dict
+        if request_id is None:
+            return {}
+
+        # Create base response
         response = {"jsonrpc": self.version, "id": request_id}
 
+        # Add either result or error, but not both
         if error is not None:
+            if not isinstance(error, dict) or "code" not in error or "message" not in error:
+                error = {
+                    "code": -32603,
+                    "message": "Internal error",
+                    "data": "Invalid error object format",
+                }
             response["error"] = error
         else:
+            # For successful responses, always include result (can be None)
             response["result"] = result
+
+        # Validate response before returning
+        if not self.validate_response(response):
+            return {
+                "jsonrpc": self.version,
+                "id": request_id,
+                "error": {
+                    "code": -32603,
+                    "message": "Internal error",
+                    "data": "Generated invalid response format",
+                },
+            }
 
         return response
