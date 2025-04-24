@@ -118,7 +118,9 @@ class SearchResult(BaseModel):
 
 ### 5.1 Environment Variables
 
-```yaml
+The server is configured through environment variables:
+
+```bash
 QDRANT_URL: str
 QDRANT_API_KEY: str
 OPENAI_API_KEY: str
@@ -126,22 +128,20 @@ SERVER_HOST: str = "localhost"
 SERVER_PORT: int = 8000
 ```
 
-### 5.2 Configuration File
+### 5.2 Default Settings
 
-```yaml
-server:
-  host: localhost
-  port: 8000
-  log_level: INFO
+The server uses the following default settings:
 
-qdrant:
-  url: http://localhost:6333
-  collection_name: cursor_context
-
-openai:
-  model: text-embedding-3-small
-  max_tokens: 8191
-```
+- Server host: localhost
+- Server port: 8000
+- Log level: INFO
+- Qdrant collection name: cursor_context
+- OpenAI model: text-embedding-3-small
+- Max tokens: 8191
+- Default search limit: 10
+- Max search limit: 50
+- Minimum score threshold: 0.7
+- Supported source types: git, confluence, jira
 
 ## 6. Error Handling
 

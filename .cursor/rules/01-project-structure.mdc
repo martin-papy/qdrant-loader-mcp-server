@@ -1,0 +1,76 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Project Structure Guide
+
+This guide outlines the core structure and organization of the RAG MCP Server project.
+
+## Core Components
+
+The main source code is organized as follows:
+
+```
+src/mcp_server/
+├── core/                    # Core MCP server functionality
+│   ├── protocol/           # MCP protocol implementation
+│   ├── search/             # Search functionality
+│   └── streaming/          # Streaming response handling
+│
+├── qdrant/                 # Qdrant integration
+│   ├── client.py           # Qdrant client wrapper
+│   └── search.py           # Vector search implementation
+│
+├── openai/                 # OpenAI integration
+│   ├── embeddings.py       # Embedding generation
+│   └── client.py           # OpenAI client wrapper
+│
+├── config/                 # Configuration management
+├── api/                    # API endpoints
+└── utils/                  # Utility functions
+```
+
+## Configuration Files
+
+- [pyproject.toml](mdc:qdrant-loader-mcp-server/qdrant-loader-mcp-server/qdrant-loader-mcp-server/pyproject.toml): Project metadata and build settings
+  - Package dependencies
+  - Build configuration
+  - Development tools settings
+
+## Documentation
+
+Key documentation is located in [docs/](mdc:qdrant-loader-mcp-server/qdrant-loader-mcp-server/qdrant-loader-mcp-server/docs):
+- [TechnicalSpecification.md](mdc:qdrant-loader-mcp-server/qdrant-loader-mcp-server/qdrant-loader-mcp-server/docs/TechnicalSpecification.md): Technical design and architecture
+- [CodingStandards.md](mdc:qdrant-loader-mcp-server/qdrant-loader-mcp-server/qdrant-loader-mcp-server/docs/CodingStandards.md): Coding standards and best practices
+- [TestingStrategy.md](mdc:qdrant-loader-mcp-server/qdrant-loader-mcp-server/qdrant-loader-mcp-server/docs/TestingStrategy.md): Testing approach and guidelines
+- [ClientUsage.md](mdc:qdrant-loader-mcp-server/qdrant-loader-mcp-server/qdrant-loader-mcp-server/docs/ClientUsage.md): Client integration guide
+- [MCPConfiguration.md](mdc:qdrant-loader-mcp-server/qdrant-loader-mcp-server/qdrant-loader-mcp-server/docs/MCPConfiguration.md): MCP protocol configuration
+- [PRD.md](mdc:qdrant-loader-mcp-server/qdrant-loader-mcp-server/qdrant-loader-mcp-server/docs/PRD.md): Product Requirements Document
+
+## Test Organization
+
+Tests are organized in [tests/](mdc:qdrant-loader-mcp-server/qdrant-loader-mcp-server/qdrant-loader-mcp-server/tests):
+```
+tests/
+├── unit/                  # Unit tests
+│   ├── core/             # Core functionality tests
+│   ├── qdrant/           # Qdrant integration tests
+│   ├── openai/           # OpenAI integration tests
+│   └── utils/            # Utility function tests
+├── integration/          # Integration tests
+└── fixtures/             # Test fixtures and data
+```
+
+## Development Environment
+
+- Python 3.12 or higher required
+- Use virtual environment (venv)
+- Install with development dependencies: `pip install -e ".[dev]"`
+- Set required environment variables:
+  - `QDRANT_URL`: Qdrant server URL
+  - `QDRANT_API_KEY`: Qdrant API key
+  - `OPENAI_API_KEY`: OpenAI API key
+  - `SERVER_HOST`: (optional) Server host, defaults to "localhost"
+  - `SERVER_PORT`: (optional) Server port, defaults to 8000
+- Ensure Qdrant instance is running

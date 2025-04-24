@@ -174,6 +174,11 @@ The server is configured through a `mcp.json` file that defines how Cursor shoul
 - **command**: How to start the server
 - **args**: Command-line arguments
 - **env**: Required environment variables
+  - `QDRANT_URL`: Qdrant server URL
+  - `QDRANT_API_KEY`: Qdrant API key
+  - `OPENAI_API_KEY`: OpenAI API key
+  - `SERVER_HOST`: (optional) Server host, defaults to "localhost"
+  - `SERVER_PORT`: (optional) Server port, defaults to 8000
 
 ### 3. Capabilities
 

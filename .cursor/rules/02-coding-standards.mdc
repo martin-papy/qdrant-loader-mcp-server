@@ -1,0 +1,91 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Coding Standards
+
+## Python Code Style
+
+- Follow PEP 8 guidelines
+- Use Black for formatting with 88 characters line length
+- Use isort for import sorting
+- Use double quotes for strings
+- Use trailing commas in multi-line collections
+- Use type hints for all function parameters and return values
+- Use dataclasses for data structures
+- Use async/await for asynchronous code
+
+## Naming Conventions
+
+- Classes: `PascalCase`
+- Functions and variables: `snake_case`
+- Constants: `UPPER_SNAKE_CASE`
+- Private members: `_leading_underscore`
+- Modules: `snake_case`
+- Type variables: `CamelCase`
+
+## Documentation
+
+- Use Google-style docstrings
+- Include type hints in docstrings
+- Document all public functions, classes, and methods
+- Include examples for complex functionality
+
+Example:
+```python
+async def search_documents(
+    query: str,
+    limit: int = 10,
+    source_types: Optional[List[str]] = None
+) -> List[SearchResult]:
+    """Search for documents using semantic similarity.
+
+    Args:
+        query: The search query text
+        limit: Maximum number of results to return
+        source_types: Optional list of source types to filter by
+
+    Returns:
+        List of SearchResult objects containing matches
+
+    Example:
+        >>> results = await search_documents(
+        ...     "How to configure OAuth?",
+        ...     limit=5,
+        ...     source_types=["confluence", "git"]
+        ... )
+    """
+```
+
+## Error Handling
+
+- Use specific exceptions rather than generic ones
+- Include meaningful error messages
+- Log exceptions with context using structlog
+- Use custom exceptions for domain-specific errors
+- Handle all expected error cases
+- Provide clean error responses in API endpoints
+
+## Logging
+
+- Use structlog for structured logging
+- Include relevant context in log messages
+- Use appropriate log levels:
+  - DEBUG: Detailed information for debugging
+  - INFO: General operational events
+  - WARNING: Unexpected but handled situations
+  - ERROR: Errors that need attention
+  - CRITICAL: System-level failures
+- Log important state changes and operations
+
+## Testing
+
+- Write unit tests for all new functionality
+- Use pytest as the testing framework
+- Use pytest fixtures for test setup
+- Mock external dependencies
+- Aim for high test coverage
+- Include integration tests for API endpoints
+
+For detailed standards, refer to [CodingStandards.md](mdc:docs/CodingStandards.md)

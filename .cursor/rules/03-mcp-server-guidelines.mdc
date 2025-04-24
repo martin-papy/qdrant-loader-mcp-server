@@ -1,0 +1,80 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# MCP Server Development Guidelines
+
+## MCP Protocol Implementation
+
+- Follow the Model Context Protocol specification
+- Implement all required endpoints:
+  - `/search`: For semantic search queries
+  - `/health`: For health checks
+  - `/metrics`: For monitoring
+- Support streaming responses where appropriate
+- Handle protocol-specific error cases
+- Validate all incoming requests
+
+## Search Implementation
+
+- Use Qdrant for vector storage and search
+- Implement efficient search strategies:
+  - Use appropriate vector similarity metrics
+  - Implement proper filtering
+  - Support pagination
+  - Handle timeouts gracefully
+- Cache frequently accessed embeddings
+- Implement proper error handling for search failures
+
+## Performance Guidelines
+
+- Use connection pooling for Qdrant
+- Implement proper caching strategies
+- Use async/await for I/O operations
+- Monitor and optimize query performance
+- Implement rate limiting
+- Use appropriate batch sizes for operations
+
+## Security Guidelines
+
+- Validate all input
+- Sanitize search queries
+- Implement proper authentication if required
+- Secure API endpoints
+- Handle API keys securely
+- Follow OWASP security guidelines
+
+## Configuration Management
+
+- Use environment variables for sensitive data
+- Implement proper configuration validation
+- Support different environments (dev, prod)
+- Document all configuration options
+- Provide sensible defaults
+- Support configuration reloading
+
+## Monitoring and Observability
+
+- Implement proper logging
+- Add metrics for:
+  - Search latency
+  - Request counts
+  - Error rates
+  - Cache hit/miss rates
+- Support distributed tracing
+- Add health check endpoints
+- Monitor resource usage
+
+## Integration Guidelines
+
+- Follow RESTful API best practices
+- Provide clear API documentation
+- Implement proper versioning
+- Support CORS if needed
+- Provide client examples
+- Document rate limits
+
+For detailed implementation guidance, refer to:
+- [TechnicalSpecification.md](mdc:docs/TechnicalSpecification.md)
+- [MCPConfiguration.md](mdc:docs/MCPConfiguration.md)

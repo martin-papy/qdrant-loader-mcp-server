@@ -39,104 +39,26 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -e ".[dev]"  # Install with development dependencies
 ```
 
-4. Copy and configure the environment:
+4. Set up environment variables:
 
 ```bash
-cp config/config.template.yaml config/config.yaml
-# Edit config.yaml with your settings
+export QDRANT_URL="your_qdrant_url"
+export QDRANT_API_KEY="your_qdrant_api_key"
+export OPENAI_API_KEY="your_openai_api_key"
 ```
 
 ## Configuration
 
-The server is configured through `config/config.yaml`. You need to set:
+The server is configured through environment variables:
 
-- Qdrant connection details
-- OpenAI API key
-- Server settings
-- Search parameters
+- `QDRANT_URL`: URL of your Qdrant instance
+- `QDRANT_API_KEY`: API key for Qdrant
+- `OPENAI_API_KEY`: OpenAI API key
+- `SERVER_HOST`: (optional) Server host, defaults to "localhost"
+- `SERVER_PORT`: (optional) Server port, defaults to 8000
 
 ## Usage
 
 1. Start the server:
 
-```bash
-mcp-server
 ```
-
-2. The server will be available at `http://localhost:8000`
-
-3. Use the MCP protocol to interact with the server:
-
-```python
-import jsonrpcclient
-from jsonrpcclient.clients.http_client import HTTPClient
-
-client = HTTPClient("http://localhost:8000")
-response = client.request(
-    "search",
-    {
-        "query": "How do I configure OAuth?",
-        "source_types": ["confluence", "git"],
-        "limit": 5
-    }
-)
-```
-
-## Development
-
-### Setup Development Environment
-
-```bash
-# Clone the repository
-git clone https://github.com/martin-papy/qdrant-loader-mcp-server.git
-cd qdrant-loader-mcp-server
-
-# Create and activate virtual environment
-python3.12 -m venv venv
-source venv/bin/activate  # On macOS/Linux
-# or
-.\venv\Scripts\activate  # On Windows
-
-# Install in development mode
-pip install -e ".[dev]"
-```
-
-### Running Tests
-
-```bash
-# Run all tests
-pytest
-
-# Run tests with coverage
-pytest --cov=src
-```
-
-## Documentation
-
-- [Technical Specification](docs/TechnicalSpecification.md)
-- [Testing Strategy](docs/TestingStrategy.md)
-- [Coding Standards](docs/CodingStandards.md)
-- [Client Usage](docs/ClientUsage.md)
-
-## Contributing
-
-We welcome contributions! Please:
-
-1. Check existing issues to avoid duplicates
-2. Create a new issue with:
-   - Clear, descriptive title
-   - Steps to reproduce
-   - Expected vs actual behavior
-   - Environment details
-   - Relevant error messages
-
-For code contributions:
-
-1. Fork the repository
-2. Create a feature branch
-3. Submit a pull request with clear description
-4. Ensure all tests pass
-
-## License
-
-This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
