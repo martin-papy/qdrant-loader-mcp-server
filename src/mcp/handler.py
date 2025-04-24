@@ -64,6 +64,11 @@ class MCPHandler:
 
         logger.debug("Processing request", method=method, params=params, request_id=request_id)
 
+        # Handle notifications (requests without id)
+        if request_id is None:
+            logger.debug("Handling notification", method=method)
+            return {}
+
         try:
             if method == "initialize":
                 logger.info("Handling initialize request")

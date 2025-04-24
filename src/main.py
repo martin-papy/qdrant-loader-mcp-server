@@ -23,16 +23,53 @@ from .config import Config
 from .search.engine import SearchEngine
 from .search.processor import QueryProcessor
 
-# Initialize logging first
-LoggingConfig.setup(level="DEBUG")
-logger = LoggingConfig.get_logger("src.main")  # Use proper module name
-logger.info("Initializing MCP Qdrant Loader")
+# Initialize logging first with DEBUG level and ensure it works when started as a script
+try:
+    # Check if console logging is disabled
+    disable_console_logging = os.getenv("MCP_DISABLE_CONSOLE_LOGGING", "").lower() == "true"
+
+    # Try to initialize logging with the module path
+    LoggingConfig.setup(level="DEBUG", format="console")
+    logger = LoggingConfig.get_logger("src.main")
+except Exception as e:
+    # If that fails, try with just the module name
+    LoggingConfig.setup(level="DEBUG", format="console")
+    logger = LoggingConfig.get_logger("main")
+
+if not disable_console_logging:
+    logger.info("=" * 50)
+    logger.info("MCP Qdrant Loader Starting")
+    logger.info("=" * 50)
 
 # Initialize components
-config = Config()
-mcp_handler = MCPHandler()
-query_processor = QueryProcessor()
-search_engine = SearchEngine()
+try:
+    if not disable_console_logging:
+        logger.debug("Initializing configuration...")
+    config = Config()
+    if not disable_console_logging:
+        logger.debug("Configuration initialized successfully")
+
+    if not disable_console_logging:
+        logger.debug("Initializing MCP handler...")
+    mcp_handler = MCPHandler()
+    if not disable_console_logging:
+        logger.debug("MCP handler initialized successfully")
+
+    if not disable_console_logging:
+        logger.debug("Initializing query processor...")
+    query_processor = QueryProcessor()
+    if not disable_console_logging:
+        logger.debug("Query processor initialized successfully")
+
+    if not disable_console_logging:
+        logger.debug("Initializing search engine...")
+    search_engine = SearchEngine()
+    if not disable_console_logging:
+        logger.debug("Search engine initialized successfully")
+except Exception as e:
+    if not disable_console_logging:
+        logger.error("Failed to initialize components", exc_info=True)
+    raise
 
 
 @asynccontextmanager
@@ -100,13 +137,145 @@ async def shutdown(loop: asyncio.AbstractEventLoop):
     loop.stop()
 
 
+async def handle_stdio():
+    """Handle stdio communication with Cursor."""
+    try:
+        # Check if console logging is disabled
+        disable_console_logging = os.getenv("MCP_DISABLE_CONSOLE_LOGGING", "").lower() == "true"
+
+        if not disable_console_logging:
+            logger.info("Setting up stdio handler...")
+        reader = await read_stdin()
+        if not disable_console_logging:
+            logger.info("Server ready to handle requests")
+
+        while True:
+            try:
+                # Read a line from stdin
+                if not disable_console_logging:
+                    logger.debug("Waiting for input...")
+                try:
+                    line = await reader.readline()
+                    if not line:
+                        if not disable_console_logging:
+                            logger.warning("No input received, breaking")
+                        break
+                except asyncio.CancelledError:
+                    if not disable_console_logging:
+                        logger.info("Read operation cancelled during shutdown")
+                    break
+
+                # Log the raw input
+                raw_input = line.decode().strip()
+                if not disable_console_logging:
+                    logger.debug("Received raw input", raw_input=raw_input)
+
+                # Parse the request
+                try:
+                    request = json.loads(raw_input)
+                    if not disable_console_logging:
+                        logger.debug("Parsed request", request=request)
+                except json.JSONDecodeError as e:
+                    if not disable_console_logging:
+                        logger.error("Invalid JSON received", error=str(e))
+                    # Send error response for invalid JSON
+                    response = {
+                        "jsonrpc": "2.0",
+                        "id": None,
+                        "error": {
+                            "code": -32700,
+                            "message": "Parse error",
+                            "data": f"Invalid JSON received: {str(e)}",
+                        },
+                    }
+                    sys.stdout.write(json.dumps(response) + "\n")
+                    sys.stdout.flush()
+                    continue
+
+                # Validate request format
+                if not isinstance(request, dict):
+                    if not disable_console_logging:
+                        logger.error("Request must be a JSON object")
+                    response = {
+                        "jsonrpc": "2.0",
+                        "id": None,
+                        "error": {
+                            "code": -32600,
+                            "message": "Invalid Request",
+                            "data": "Request must be a JSON object",
+                        },
+                    }
+                    sys.stdout.write(json.dumps(response) + "\n")
+                    sys.stdout.flush()
+                    continue
+
+                if "jsonrpc" not in request or request["jsonrpc"] != "2.0":
+                    if not disable_console_logging:
+                        logger.error("Invalid JSON-RPC version")
+                    response = {
+                        "jsonrpc": "2.0",
+                        "id": request.get("id"),
+                        "error": {
+                            "code": -32600,
+                            "message": "Invalid Request",
+                            "data": "Invalid JSON-RPC version",
+                        },
+                    }
+                    sys.stdout.write(json.dumps(response) + "\n")
+                    sys.stdout.flush()
+                    continue
+
+                # Process the request
+                try:
+                    response = await mcp_handler.handle_request(request)
+                    if not disable_console_logging:
+                        logger.debug("Sending response", response=response)
+                    # Only write to stdout if response is not empty (not a notification)
+                    if response:
+                        sys.stdout.write(json.dumps(response) + "\n")
+                        sys.stdout.flush()
+                except Exception as e:
+                    if not disable_console_logging:
+                        logger.error("Error processing request", exc_info=True)
+                    response = {
+                        "jsonrpc": "2.0",
+                        "id": request.get("id"),
+                        "error": {
+                            "code": -32603,
+                            "message": "Internal error",
+                            "data": str(e),
+                        },
+                    }
+                    sys.stdout.write(json.dumps(response) + "\n")
+                    sys.stdout.flush()
+
+            except asyncio.CancelledError:
+                if not disable_console_logging:
+                    logger.info("Request handling loop cancelled during shutdown")
+                break
+            except Exception as e:
+                if not disable_console_logging:
+                    logger.error("Error in request handling loop", exc_info=True)
+                continue
+
+    except asyncio.CancelledError:
+        if not disable_console_logging:
+            logger.info("Stdio handler cancelled during shutdown")
+        raise
+    except Exception as e:
+        if not disable_console_logging:
+            logger.error("Fatal error in stdio handler", exc_info=True)
+        raise
+
+
 def main():
     """Main entry point for the application."""
-    # Suppress asyncio debug messages
-    logging.getLogger("asyncio").setLevel(logging.WARNING)
-
-    logger.debug("Starting main function...")
     try:
+        # Suppress asyncio debug messages
+        logging.getLogger("asyncio").setLevel(logging.WARNING)
+
+        logger.info("Starting main function...")
+
         # Create and set the event loop
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -116,13 +285,13 @@ def main():
             loop.add_signal_handler(sig, lambda: asyncio.create_task(shutdown(loop)))
 
         # Run the stdio handler
-        logger.debug("Running stdio handler...")
+        logger.info("Running stdio handler...")
         loop.run_until_complete(handle_stdio())
     except Exception as e:
-        logger.error("Error in main", exc_info=True)
+        logger.error("Fatal error in main", exc_info=True)
         raise
     finally:
-        logger.debug("Cleaning up...")
+        logger.info("Cleaning up...")
         try:
             # Cancel all remaining tasks
             pending = asyncio.all_tasks(loop)
@@ -135,108 +304,7 @@ def main():
             logger.error("Error during final cleanup", exc_info=True)
         finally:
             loop.close()
-
-
-async def handle_stdio():
-    """Handle stdio communication with Cursor."""
-    reader = await read_stdin()
-    logger.info("Server ready to handle requests")
-
-    while True:
-        try:
-            # Read a line from stdin
-            logger.debug("Waiting for input...")
-            line = await reader.readline()
-            if not line:
-                logger.info("No input received, breaking")
-                break
-
-            # Log the raw input
-            raw_input = line.decode().strip()
-            logger.debug("Received raw input", raw_input=raw_input)
-
-            # Parse the request
-            try:
-                request = json.loads(raw_input)
-                # Log the parsed request
-                logger.debug("Parsed request", request=request)
-            except json.JSONDecodeError:
-                logger.error("Invalid JSON received")
-                # Send error response for invalid JSON
-                response = {
-                    "jsonrpc": "2.0",
-                    "id": None,
-                    "error": {
-                        "code": -32700,
-                        "message": "Parse error",
-                        "data": "Invalid JSON received",
-                    },
-                }
-                sys.stdout.write(json.dumps(response) + "\n")
-                sys.stdout.flush()
-                continue
-
-            # Validate request format
-            if not isinstance(request, dict):
-                logger.error("Request must be a JSON object")
-                response = {
-                    "jsonrpc": "2.0",
-                    "id": None,
-                    "error": {
-                        "code": -32600,
-                        "message": "Invalid Request",
-                        "data": "Request must be a JSON object",
-                    },
-                }
-                sys.stdout.write(json.dumps(response) + "\n")
-                sys.stdout.flush()
-                continue
-
-            if "jsonrpc" not in request or request["jsonrpc"] != "2.0":
-                logger.error("Invalid JSON-RPC version")
-                response = {
-                    "jsonrpc": "2.0",
-                    "id": request.get("id"),
-                    "error": {
-                        "code": -32600,
-                        "message": "Invalid Request",
-                        "data": "Invalid JSON-RPC version",
-                    },
-                }
-                sys.stdout.write(json.dumps(response) + "\n")
-                sys.stdout.flush()
-                continue
-
-            if "method" not in request:
-                logger.error("Missing method in request")
-                response = {
-                    "jsonrpc": "2.0",
-                    "id": request.get("id"),
-                    "error": {
-                        "code": -32600,
-                        "message": "Invalid Request",
-                        "data": "Missing method in request",
-                    },
-                }
-                sys.stdout.write(json.dumps(response) + "\n")
-                sys.stdout.flush()
-                continue
-
-            # Handle the request
-            response = await mcp_handler.handle_request(request)
-
-            # Log the response
-            logger.debug("Sending response", response=response)
-
-            # Write the response to stdout
-            sys.stdout.write(json.dumps(response) + "\n")
-            sys.stdout.flush()
-        except asyncio.CancelledError:
-            logger.info("Received shutdown signal")
-            break
-        except Exception as e:
-            logger.error("Error handling request", exc_info=True)
-            continue
+            logger.info("Server shutdown complete")
 
 
 if __name__ == "__main__":

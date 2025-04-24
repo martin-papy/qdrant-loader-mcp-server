@@ -5,6 +5,7 @@ import sys
 import structlog
 from pathlib import Path
 import re
+import os
 
 
 class QdrantVersionFilter(logging.Filter):
@@ -26,6 +27,8 @@ class ApplicationFilter(logging.Filter):
             or record.name == "fastapi"
             or record.name == "__main__"  # Allow logs from main module
             or record.name == "asyncio"  # Allow logs from asyncio
+            or record.name == "main"  # Allow logs when started as a script
+            or record.name == "qdrant_loader_mcp_server"  # Allow logs from the package
         )
 
 
@@ -62,7 +65,12 @@ class LoggingConfig:
             file: Path to log file (optional)
             suppress_qdrant_warnings: Whether to suppress Qdrant version check warnings
         """
+        # Check if console logging is disabled first
+        disable_console_logging = os.getenv("MCP_DISABLE_CONSOLE_LOGGING", "").lower() == "true"
+
         try:
+            # Get log level from environment variable or use default
+            level = os.getenv("MCP_LOG_LEVEL", level)
             # Convert string level to logging level
             numeric_level = getattr(logging, level.upper())
         except AttributeError:
@@ -75,11 +83,12 @@ class LoggingConfig:
         # Create a list of handlers
         handlers = []
 
-        # Add console handler for stderr only
-        stderr_handler = logging.StreamHandler(sys.stderr)
-        stderr_handler.setFormatter(logging.Formatter("%(message)s"))
-        stderr_handler.addFilter(ApplicationFilter())  # Only show our application logs
-        handlers.append(stderr_handler)
+        # Add console handler for stderr only if console logging is not disabled
+        if not disable_console_logging:
+            stderr_handler = logging.StreamHandler(sys.stderr)
+            stderr_handler.setFormatter(logging.Formatter("%(message)s"))
+            stderr_handler.addFilter(ApplicationFilter())  # Only show our application logs
+            handlers.append(stderr_handler)
 
         # Add file handler if file is configured
         if file:
@@ -87,18 +96,22 @@ class LoggingConfig:
             file_handler.setFormatter(CleanFormatter("%(message)s"))
             handlers.append(file_handler)
 
-        # Add clean log file handler at project root
-        clean_log_file = Path("mcp-qdrant-loader.log")
-        clean_log_handler = logging.FileHandler(clean_log_file)
-        clean_log_handler.setFormatter(CleanFormatter("%(message)s"))
-        clean_log_handler.addFilter(ApplicationFilter())
-        handlers.append(clean_log_handler)
+        # Add clean log file handler at configured path
+        log_file = os.getenv("MCP_LOG_FILE")
+        if log_file:
+            log_path = Path(log_file)
+            log_path.parent.mkdir(parents=True, exist_ok=True)
+            clean_log_handler = logging.FileHandler(log_path)
+            clean_log_handler.setFormatter(CleanFormatter("%(message)s"))
+            clean_log_handler.addFilter(ApplicationFilter())
+            handlers.append(clean_log_handler)
 
         # Configure standard logging
         logging.basicConfig(
             level=numeric_level,
             format="%(message)s",
             handlers=handlers,
+            force=True,  # Force reconfiguration
         )
 
         # Add filter to suppress Qdrant version check warnings

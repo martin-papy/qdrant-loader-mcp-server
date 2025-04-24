@@ -9,156 +9,26 @@ This document describes the Model Context Protocol (MCP) configuration and imple
 The server is configured through a `mcp.json` file that defines how Cursor should interact with our server. Here's the complete configuration:
 
 ```json
-{
-  "name": "rag-mcp-server",
-  "version": "0.1.0",
-  "description": "RAG MCP Server for Cursor that provides semantic search capabilities using Qdrant",
-  "command": {
-    "command": "python",
-    "args": ["-m", "uvicorn", "src.main:app", "--host", "localhost", "--port", "8000"],
-    "env": {
-      "QDRANT_URL": "${QDRANT_URL}",
-      "QDRANT_API_KEY": "${QDRANT_API_KEY}",
-      "OPENAI_API_KEY": "${OPENAI_API_KEY}"
-    }
-  },
-  "capabilities": {
-    "tools": [
-      {
-        "name": "search",
-        "description": "Search for contextually relevant content across multiple data sources",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "query": {
-              "type": "string",
-              "description": "The natural language query to search for"
+        "qdrant-loader-mcp-server": {
+            "command": "mcp-qdrant-loader",
+            "protocol": "json-rpc",
+            "version": "2.0",
+            "capabilities": {
+                "supportsListOfferings": true
             },
-            "source_types": {
-              "type": "array",
-              "items": {
-                "type": "string",
-                "enum": ["git", "confluence", "jira"]
-              },
-              "description": "Optional list of source types to filter results"
+            "serverInfo": {
+                "name": "Qdrant Loader MCP Server",
+                "version": "1.0.0"
             },
-            "limit": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 50,
-              "default": 10,
-              "description": "Maximum number of results to return"
+            "initialization": {
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": "2024-11-05",
+                    "capabilities": {
+                        "supportsListOfferings": true
+                    }
+                }
             }
-          },
-          "required": ["query"]
-        },
-        "returns": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "score": {
-                "type": "number",
-                "description": "Relevance score of the result"
-              },
-              "text": {
-                "type": "string",
-                "description": "The relevant text content"
-              },
-              "source_type": {
-                "type": "string",
-                "enum": ["git", "confluence", "jira"],
-                "description": "Type of the source document"
-              },
-              "source_title": {
-                "type": "string",
-                "description": "Title of the source document"
-              },
-              "source_url": {
-                "type": "string",
-                "description": "URL to the source document (if available)"
-              },
-              "file_path": {
-                "type": "string",
-                "description": "File path for git sources"
-              },
-              "repo_name": {
-                "type": "string",
-                "description": "Repository name for git sources"
-              }
-            },
-            "required": ["score", "text", "source_type", "source_title"]
-          }
-        }
-      }
-    ],
-    "resources": [
-      {
-        "name": "search_results",
-        "description": "Streaming search results in NDJSON format",
-        "content_type": "application/x-ndjson",
-        "schema": {
-          "type": "object",
-          "properties": {
-            "query": {
-              "type": "string",
-              "description": "The original search query"
-            },
-            "results": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "score": {
-                    "type": "number",
-                    "description": "Relevance score"
-                  },
-                  "text": {
-                    "type": "string",
-                    "description": "Content text"
-                  },
-                  "source_type": {
-                    "type": "string",
-                    "enum": ["git", "confluence", "jira"]
-                  },
-                  "source_title": {
-                    "type": "string"
-                  },
-                  "source_url": {
-                    "type": "string"
-                  },
-                  "file_path": {
-                    "type": "string"
-                  },
-                  "repo_name": {
-                    "type": "string"
-                  }
-                },
-                "required": ["score", "text", "source_type", "source_title"]
-              }
-            }
-          },
-          "required": ["query", "results"]
-        }
-      }
-    ]
-  },
-  "server": {
-    "host": "localhost",
-    "port": 8000,
-    "protocol": "json-rpc",
-    "streaming": true
-  },
-  "authentication": {
-    "type": "none"
-  },
-  "error_handling": {
-    "retry": {
-      "max_attempts": 3,
-      "backoff": "exponential"
-    }
-  }
-}
 ```
 
 ## Configuration Components
