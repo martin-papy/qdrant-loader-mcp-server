@@ -1,7 +1,7 @@
 {
     "mcpServers": {
         "qdrant-loader-mcp-server": {
-            "command": "/Users/martin.papy/Development/qdrant-loader-mcp-server/venv/bin/mcp-qdrant-loader",
+            "command": "mcp-qdrant-loader",
             "protocol": "json-rpc",
             "version": "2.0",
             "capabilities": {
