@@ -11,23 +11,13 @@ The server is configured through a `mcp.json` file that defines how Cursor shoul
 ```json
         "qdrant-loader-mcp-server": {
             "command": "mcp-qdrant-loader",
-            "protocol": "json-rpc",
-            "version": "2.0",
-            "capabilities": {
-                "supportsListOfferings": true
-            },
-            "serverInfo": {
-                "name": "Qdrant Loader MCP Server",
-                "version": "1.0.0"
-            },
-            "initialization": {
-                "method": "initialize",
-                "params": {
-                    "protocolVersion": "2024-11-05",
-                    "capabilities": {
-                        "supportsListOfferings": true
-                    }
-                }
+            "env": {
+                "QDRANT_URL": "http://localhost:6333",
+                "QDRANT_API_KEY": "",
+                "QDRANT_COLLECTION_NAME": "qdrant-loader-mcp-server",
+                "MCP_LOG_LEVEL": "DEBUG",
+                "MCP_LOG_FILE": "/path/to/your/mcp-qdrant-loader.log",
+                "MCP_DISABLE_CONSOLE_LOGGING": "true"
             }
 ```
 

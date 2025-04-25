@@ -1,13 +1,17 @@
 """Unit tests for MCP protocol implementation."""
 
 import pytest
+from unittest.mock import Mock
 from src.mcp import MCPHandler, MCPRequest, MCPResponse
 
 
 @pytest.fixture
 def mcp_handler():
     """Create MCP handler fixture."""
-    return MCPHandler()
+    # TODO: Implement search engine and query processor
+    search_engine = Mock()
+    query_processor = Mock()
+    return MCPHandler(search_engine, query_processor)
 
 
 @pytest.fixture

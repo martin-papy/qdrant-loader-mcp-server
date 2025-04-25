@@ -23,6 +23,9 @@ from .config import Config
 from .search.engine import SearchEngine
 from .search.processor import QueryProcessor
 
+# Suppress asyncio debug messages
+logging.getLogger("asyncio").setLevel(logging.WARNING)
+
 # Initialize logging first with DEBUG level and ensure it works when started as a script
 try:
     # Check if console logging is disabled
@@ -50,22 +53,22 @@ try:
         logger.debug("Configuration initialized successfully")
 
     if not disable_console_logging:
-        logger.debug("Initializing MCP handler...")
-    mcp_handler = MCPHandler()
-    if not disable_console_logging:
-        logger.debug("MCP handler initialized successfully")
-
-    if not disable_console_logging:
-        logger.debug("Initializing query processor...")
-    query_processor = QueryProcessor()
-    if not disable_console_logging:
-        logger.debug("Query processor initialized successfully")
-
-    if not disable_console_logging:
         logger.debug("Initializing search engine...")
     search_engine = SearchEngine()
     if not disable_console_logging:
         logger.debug("Search engine initialized successfully")
+
+    if not disable_console_logging:
+        logger.debug("Initializing query processor...")
+    query_processor = QueryProcessor(config.openai)
+    if not disable_console_logging:
+        logger.debug("Query processor initialized successfully")
+
+    if not disable_console_logging:
+        logger.debug("Initializing MCP handler...")
+    mcp_handler = MCPHandler(search_engine, query_processor)
+    if not disable_console_logging:
+        logger.debug("MCP handler initialized successfully")
 except Exception as e:
     if not disable_console_logging:
         logger.error("Failed to initialize components", exc_info=True)
@@ -78,7 +81,7 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting MCP Qdrant Loader")
     try:
-        await search_engine.initialize(config.qdrant)
+        await search_engine.initialize(config.qdrant, config.openai)
     except RuntimeError as e:
         logger.error("Failed to initialize search engine", exc_info=True)
         logger.error(
@@ -145,6 +148,16 @@ async def handle_stdio():
 
         if not disable_console_logging:
             logger.info("Setting up stdio handler...")
+
+        # Initialize search engine
+        try:
+            await search_engine.initialize(config.qdrant, config.openai)
+            if not disable_console_logging:
+                logger.info("Search engine initialized successfully")
+        except Exception as e:
+            logger.error("Failed to initialize search engine", exc_info=True)
+            raise RuntimeError("Failed to initialize search engine") from e
+
         reader = await read_stdin()
         if not disable_console_logging:
             logger.info("Server ready to handle requests")
@@ -251,31 +264,22 @@ async def handle_stdio():
 
             except asyncio.CancelledError:
                 if not disable_console_logging:
-                    logger.info("Request handling loop cancelled during shutdown")
+                    logger.info("Request handling cancelled during shutdown")
                 break
             except Exception as e:
                 if not disable_console_logging:
-                    logger.error("Error in request handling loop", exc_info=True)
+                    logger.error("Error handling request", exc_info=True)
                 continue
 
-    except asyncio.CancelledError:
-        if not disable_console_logging:
-            logger.info("Stdio handler cancelled during shutdown")
-        raise
     except Exception as e:
         if not disable_console_logging:
-            logger.error("Fatal error in stdio handler", exc_info=True)
+            logger.error("Error in stdio handler", exc_info=True)
         raise
 
 
 def main():
-    """Main entry point for the application."""
+    """Main entry point."""
     try:
-        # Suppress asyncio debug messages
-        logging.getLogger("asyncio").setLevel(logging.WARNING)
-
-        logger.info("Starting main function...")
-
         # Create and set the event loop
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -284,14 +288,12 @@ def main():
         for sig in (signal.SIGTERM, signal.SIGINT):
             loop.add_signal_handler(sig, lambda: asyncio.create_task(shutdown(loop)))
 
-        # Run the stdio handler
-        logger.info("Running stdio handler...")
+        # Start the stdio handler
         loop.run_until_complete(handle_stdio())
     except Exception as e:
-        logger.error("Fatal error in main", exc_info=True)
-        raise
+        logger.error("Error in main", exc_info=True)
+        sys.exit(1)
     finally:
-        logger.info("Cleaning up...")
         try:
             # Cancel all remaining tasks
             pending = asyncio.all_tasks(loop)

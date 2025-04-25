@@ -2,6 +2,11 @@
 
 from pydantic import BaseModel
 from typing import Optional
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 class ServerConfig(BaseModel):
@@ -15,8 +20,17 @@ class ServerConfig(BaseModel):
 class QdrantConfig(BaseModel):
     """Qdrant configuration settings."""
 
-    url: str = "http://localhost:6333"
-    collection_name: str = "documents"
+    url: str = os.getenv("QDRANT_URL", "http://localhost:6333")
+    api_key: Optional[str] = os.getenv("QDRANT_API_KEY")
+    collection_name: str = os.getenv("QDRANT_COLLECTION_NAME", "documents")
+
+
+class OpenAIConfig(BaseModel):
+    """OpenAI configuration settings."""
+
+    api_key: str
+    model: str = "text-embedding-3-small"
+    chat_model: str = "gpt-3.5-turbo"
 
 
 class Config(BaseModel):
@@ -24,3 +38,11 @@ class Config(BaseModel):
 
     server: ServerConfig = ServerConfig()
     qdrant: QdrantConfig = QdrantConfig()
+    openai: OpenAIConfig
+
+    def __init__(self, **data):
+        """Initialize configuration with environment variables."""
+        # Get OpenAI API key from environment
+        if "openai" not in data:
+            data["openai"] = {"api_key": os.getenv("OPENAI_API_KEY")}
+        super().__init__(**data)
