@@ -102,6 +102,21 @@ class MCPHandler:
             elif method == "search":
                 logger.info("Handling search request")
                 return await self._handle_search(request_id, params)
+            elif method == "tools/call":
+                logger.info("Handling tools/call request")
+                tool_name = params.get("name")
+                if tool_name == "search":
+                    return await self._handle_search(request_id, params.get("arguments", {}))
+                else:
+                    logger.warning("Unknown tool requested", tool_name=tool_name)
+                    return self.protocol.create_response(
+                        request_id,
+                        error={
+                            "code": -32601,
+                            "message": "Method not found",
+                            "data": f"Tool '{tool_name}' not found",
+                        },
+                    )
             else:
                 logger.warning("Unknown method requested", method=method)
                 return self.protocol.create_response(
@@ -276,18 +291,23 @@ class MCPHandler:
             response = self.protocol.create_response(
                 request_id,
                 result={
-                    "results": [
+                    "content": [
                         {
-                            "score": result.score,
-                            "text": result.text,
-                            "source_type": result.source_type,
-                            "source_title": result.source_title,
-                            "source_url": result.source_url,
-                            "file_path": result.file_path,
-                            "repo_name": result.repo_name,
+                            "type": "text",
+                            "text": f"Found {len(results)} results:\n\n"
+                            + "\n\n".join(
+                                f"Score: {result.score}\n"
+                                f"Text: {result.text}\n"
+                                f"Source: {result.source_type}"
+                                + (f" - {result.source_title}" if result.source_title else "")
+                                + (f" ({result.source_url})" if result.source_url else "")
+                                + (f"\nFile: {result.file_path}" if result.file_path else "")
+                                + (f"\nRepo: {result.repo_name}" if result.repo_name else "")
+                                for result in results
+                            ),
                         }
-                        for result in results
-                    ]
+                    ],
+                    "isError": False,
                 },
             )
             logger.debug("Search response formatted successfully")
